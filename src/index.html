@@ -1,10 +1,71 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title></title>
-  </head>
-  <body>
-    Well hey there!!!
-  </body>
+<head>
+  <meta charset="utf-8">
+  <script>var functions = require("./js/functions.js")</script>
+  <link rel="stylesheet" href="css/style.css"/>
+  <title>Cashier</title>
+</head>
+<body>
+  <header>
+    <div>
+      <img src="images/logo.png" alt="[image: logo]" class="logo" />
+      <h1>cashier</h1>
+      <button onclick="functions.test()">testing</button>
+    </div>
+  </header>
+  <main>
+    <!-- Register -->
+    <section id="register">
+      <div class="card">
+        <form id="transaction">
+          <h3>Lägg till vara</h3>
+          <p>
+            <label for="seller">Säljare</label>
+            <input type="number" name="seller" id="seller">
+          </p>
+          <p>
+            <label for="price">Pris:</label>
+            <input type="number" name="price" id="price">
+          </p>
+          <p>
+            <input type="checkbox" name="is-discounted" id="is-discounted">
+            <label for="discount">Rabatt %</label>
+            <input type="number" name="discount" id="discount" value="50">
+          </p>
+        </form>
+        <div id="add-item-container">
+          <button id="button-add-item">OK</button>
+        </div>
+      </div>
+
+      <!-- Add button -->
+      <div id="add-to-history-container">
+        <button id="button-add-to-history">Slutför köp</button>
+      </div>
+
+    </section>
+
+    <!-- receipt -->
+    <section>
+      <div id="receipt" class="card receipt">
+        <h3>Kvitto</h3>
+        <p class="receipt-placeholder">Tillagda varor kommer visas här</p>
+        <div class="sum-container hidden"><span class="receipt-sum-desc">Summa: </span><span class=receipt-sum></span><span class="receipt-sum-desc"> kronor</span></div>
+        <div class="receiptContent"></div>
+      </div>
+    </section>
+
+
+    <!-- History -->
+    <section id="history">
+      <div class="card">
+        history placeholder
+      </div>
+    </section>
+  </main>
+  <footer>
+  </footer>
+
+</body>
 </html>
