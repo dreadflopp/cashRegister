@@ -1,8 +1,8 @@
 
-exports.sayHelloInEnglish = function() {
-  alert("Hello");
+exports.sayHelloInEnglish = function () {
+  alert('Hello');
 };
 
-exports.sayHelloInSpanish = function() {
-  alert("Hola");
+exports.sayHelloInSpanish = function () {
+  alert('Hola');
 };
