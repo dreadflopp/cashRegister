@@ -1,42 +1,25 @@
-/* eslint-disable no-trailing-spaces */
-const financial = require('./utility_functions');
-const init = require('./init');
+/* eslint-disable no-trailing-spaces,no-underscore-dangle,func-names */
+const financial = require('./financial');
+const log = require('./log');
+// const init = require('./init');
 const Receipt = require('./receipt');
 const Item = require('./item');
-const App = require('./app');
+// const App = require('./app');
+const Register = require('./register');
+const ReceiptStorage = require('./receiptStorage');
 
-class UserInterface {
-    static clearReceipt(receiptId) {
-        // Get receipt
-        const receipt = document.getElementById(receiptId);
+const userInterface = (function () {
+    const register = new Register();
+    const receiptStorage = new ReceiptStorage();
+    const purchaseReceipt = new Receipt([], '');
+    let historyReceipt = new Receipt([], '');
 
-        // Reset the edit area
-        UserInterface.resetEditArea(receiptId);
-
-        // Hide the edit area
-        if (receipt.getElementsByClassName('receipt-edit-area').length > 0) {
-            const editArea = receipt.getElementsByClassName('receipt-edit-area')[0];
-            editArea.classList.add('hidden');
-        }
-
-        // Show the placeholder
-        const placeholder = receipt.getElementsByClassName('receipt-placeholder')[0];
-        placeholder.classList.remove('hidden');
-
-        // get content node
-        const contentNode = receipt.getElementsByClassName('receiptContent')[0];
-
-        // Clear the content node = remove all items
-        contentNode.innerText = '';
-
-        // Clear sum
-        const sumContainer = receipt.getElementsByClassName('sum-container')[0];
-        const sumField = sumContainer.getElementsByClassName('receipt-sum')[0];
-        sumField.innerText = '';
-        sumContainer.classList.add('hidden');
-    }
-
-    static resetEditArea(receiptId) {
+    /**
+     *
+     * @param {string} receiptId
+     */
+    /*
+    const resetEditArea = function (receiptId) {
         const receipt = document.getElementById(receiptId);
         if (receipt.getElementsByClassName('receipt-edit-area').length > 0) {
             const editArea = receipt.getElementsByClassName('receipt-edit-area')[0];
@@ -52,14 +35,127 @@ class UserInterface {
                 button.classList.add('hidden');
             });
         }
-    }
+    };
+    */
+
+    const updateSumNode = function (receiptId) {
+        // get receipt-node
+        const receiptNode = document.getElementById(receiptId);
+
+        // get all items
+        const itemsNode = receiptNode.getElementsByClassName('item');
+        const items = [];
+        Array.from(itemsNode).forEach((item) => {
+            const seller = Number(item.getElementsByClassName('seller'[0]).innerText);
+            const price = Number(item.getElementsByClassName('price')[0].innerText);
+            const discount = Number(item.getElementsByClassName('discount')[0].innerText);
+            items.push(new Item(seller, price, discount));
+        });
+
+        // calculate sum
+        let sum = 0;
+
+        items.forEach((item) => {
+            sum += item.discountedPrice();
+        });
+
+        // update sum-node
+        const sumField = receiptNode.getElementsByClassName('receipt-sum')[0];
+        sumField.innerText = financial(sum);
+    };
+
+    const updateReceipt = function (receiptId) {
+        // Get nodes and elements
+        const receiptNode = document.getElementById(receiptId);
+        const itemsNode = receiptNode.getElementsByClassName('item');
+        const editArea = receiptNode.getElementsByClassName('receipt-edit-area')[0];
+        const editButton = receiptNode.getElementsByClassName('receipt-edit-button')[0];
+        const doneButton = receiptNode.getElementsByClassName('receipt-done-button')[0];
+        const deleteButton = receiptNode.getElementsByClassName('receipt-delete-button')[0];
+        const sumContainer = receiptNode.getElementsByClassName('sum-container')[0];
+        const sumField = receiptNode.getElementsByClassName('receipt-sum')[0];
+        const placeholder = receiptNode.getElementsByClassName('receipt-placeholder')[0];
+
+        // reset the edit area
+        if (receiptNode.getElementsByClassName('receipt-edit-area').length > 0) {
+            editArea.classList.add('hidden');
+            editButton.classList.remove('hidden');
+            doneButton.classList.add('hidden');
+            deleteButton.classList.add('hidden');
+        }
+
+        // Hide all delete buttons
+        const deleteItemButtons = receiptNode.getElementsByClassName('delete-item-button');
+        Array.from(deleteItemButtons).forEach((button) => {
+            button.classList.add('hidden');
+        });
+
+        // Count the number of items on the receipt
+        const itemCount = Array.from(itemsNode).length;
+
+        // If receipt isn't empty
+        if (itemCount > 0) {
+            // Hide placeholder
+            placeholder.classList.add('hidden');
+
+            // Update sum
+            updateSumNode(receiptId);
+            sumContainer.classList.remove('hidden');
+
+            // Show edit area
+            if (receiptNode.getElementsByClassName('receipt-edit-area').length > 0) {
+                editArea.classList.remove('hidden');
+            }
+        } else {
+            // receipt is empty
+            // Show placeholder
+            placeholder.classList.remove('hidden');
+
+            // update sum-node
+            sumContainer.classList.add('hidden');
+            sumField.innerText = '';
+        }
+    };
+
+    const deleteItemButtonHandler = function () {
+        // Get nodes
+        const itemNode = this.parentNode.parentNode.parentNode.parentNode;
+        const receiptId = itemNode.parentNode.parentNode.id;
+        const receipt = document.getElementById(receiptId);
+
+        // calculate object index and delete item
+        const parent = itemNode.parentNode;
+        const indexInNode = Array.prototype.indexOf.call(parent.children, itemNode);
+        log(`Index of item in node that will be deleted from purchase object: ${indexInNode}`);
+        if (receiptId === 'receipt') {
+            const indexInObject = purchaseReceipt.length() - indexInNode - 1;
+            log(`Index of item to delete from purchase object: ${indexInObject}`);
+            purchaseReceipt.removeItem(indexInObject);
+        } else if (receiptId === 'history-receipt') {
+            const indexInObject = historyReceipt.length() - indexInNode - 1;
+            log(`Index of item to delete from history object: ${indexInObject}`);
+            historyReceipt.removeItem(indexInObject);
+        }
+
+        // Delete node
+        itemNode.parentNode.removeChild(itemNode);
+
+        // if receipt still has items, calculate sum
+        if (receipt.getElementsByClassName('item').length > 0) {
+            updateSumNode(receiptId);
+        } else {
+            updateReceipt(receiptId);
+            // Hide add-to-history button
+            document.getElementById('button-add-to-history').classList.add('hidden');
+        }
+    };
 
     /**
      *
      * @param {Item} item
      * @returns {HTMLDivElement}
      */
-    static itemNodeBuilder(item) {
+    const itemNodeBuilder = function (item) {
         // item related elements
         const itemNode = document.createElement('div');
         itemNode.classList.add('item');
@@ -92,7 +188,7 @@ class UserInterface {
         deleteItemButton.classList.add('delete-item-button');
         deleteItemButton.classList.add('hidden');
         deleteItemButton.innerHTML = '&#x2715';
-        deleteItemButton.addEventListener('click', init.deleteItemButtonHandler, false);
+        deleteItemButton.addEventListener('click', deleteItemButtonHandler, false);
         const deleteButtonContainer = document.createElement('div');
         deleteButtonContainer.classList.add('delete-item-button-container');
         deleteButtonContainer.appendChild(deleteItemButton);
@@ -103,7 +199,7 @@ class UserInterface {
         firstRowLeft.appendChild(sellerDesc);
 
         const seller = document.createElement('span');
-        seller.innerText = item.seller;
+        seller.innerText = String(item.seller);
         seller.classList.add('seller');
         firstRowLeft.appendChild(seller);
 
@@ -122,7 +218,7 @@ class UserInterface {
         secondRowLeft.appendChild(discountDescPre);
 
         const discountPercent = document.createElement('span');
-        discountPercent.innerText = item.discount;
+        discountPercent.innerText = String(item.discount);
         discountPercent.classList.add('discount');
         secondRowLeft.appendChild(discountPercent);
 
@@ -135,7 +231,7 @@ class UserInterface {
         secondRowRight.appendChild(discountSign);
 
         const discount = document.createElement('span');
-        discount.innerText = financial(item.discountedPrice());
+        discount.innerText = financial(item.price - item.discountedPrice());
         secondRowRight.appendChild(discount);
 
         // Hide second row if discount equals 0
@@ -144,19 +240,20 @@ class UserInterface {
         }
 
         return itemNode;
-    }
+    };
 
     /**
      *
      * @param {Item} item
      * @param {string} receiptId
      */
-    static addItemToReceipt(item, receiptId) {
+    /*
+    const addItemToReceipt = function (item, receiptId) {
         // Get receipt node
         const receiptNode = document.getElementById(receiptId);
 
         // Reset the edit area
-        this.resetEditArea(receiptId);
+        resetEditArea(receiptId);
 
         // Show the edit area
         if (receiptNode.getElementsByClassName('receipt-edit-area').length > 0) {
@@ -168,8 +265,8 @@ class UserInterface {
         const placeholder = receiptNode.getElementsByClassName('receipt-placeholder')[0];
         placeholder.classList.add('hidden');
 
-        // create item
-        const itemNode = this.itemNodeBuilder(item);
+        // create item-node
+        const itemNode = itemNodeBuilder(item);
 
         // get content node
         const contentNode = receiptNode.getElementsByClassName('receiptContent')[0];
@@ -182,97 +279,142 @@ class UserInterface {
         sumContainer.classList.remove('hidden');
 
         // update sum
-        const sumField = receiptNode.getElementsByClassName('receipt-sum')[0];
-        sumField.innerText = financial(Receipt.sum(receiptId));
-    }
-
-    static addItemsToReceipt(items, receiptId) {
+        updateSumNode(receiptId);
+    };
+    */
+/*
+    const addItemsToReceipt = function (items, receiptId) {
         items.forEach((item) => {
             this.addItemToReceipt(item, receiptId);
         });
-    }
-
-    static showReturnButton() {
+    };
+*/
+    const showReturnButton = function () {
         // Show return button
         document.getElementById('return-button').classList.remove('hidden');
-    }
+    };
 
-    static parseForm() {
-        if (App.validateForm()) {
-            // DOM elements
-            const sellerElement = document.getElementById('seller');
-            const priceElement = document.getElementById('price');
-            const discountElement = document.getElementById('discount');
-            const isDiscountedElement = document.getElementById('is-discounted');
 
-            // values
-            const seller = sellerElement.value;
-            const price = priceElement.value;
-            let discount = 0;
-            if (isDiscountedElement.checked) {
-                discount = discountElement.value;
-            }
+    const addItemsToPurchaseReceiptNode = function () {
+        // Count elements in receipt node and receipt object
+        const elementsInObject = purchaseReceipt.length();
+        const elementsInNode = Array.from(document.getElementById('receipt').getElementsByClassName('item')).length;
+        let elementsToAddCount = elementsInObject - elementsInNode;
 
-            // Create item
-            const item = new Item(seller, price, discount);
+        // Get receipt node
+        const receiptNode = document.getElementById('receipt');
 
-            // add to receipt
-            this.addItemToReceipt(item, 'receipt');
+        // get content node
+        const contentNode = receiptNode.getElementsByClassName('receiptContent')[0];
 
-            // Show add to history button
-            document.getElementById('button-add-to-history').classList.remove('hidden');
+        while (elementsToAddCount > 0) {
+            // Get item
+            const item = purchaseReceipt.items[elementsInObject - elementsToAddCount];
 
-            // empty form
-            sellerElement.value = '';
-            priceElement.value = '';
-            discountElement.value = 50;
-            isDiscountedElement.checked = false;
-            sellerElement.focus();
+            // create item-node
+            const itemNode = itemNodeBuilder(item);
 
-            return true;
+            // append item node
+            contentNode.insertBefore(itemNode, contentNode.firstChild);
+
+            // decrease counter
+            elementsToAddCount -= 1;
         }
+    };
+
+    const addItemsToHistoryReceiptNode = function () {
+        // Get receipt node
+        const receiptNode = document.getElementById('history-receipt');
+
+        // get content node
+        const contentNode = receiptNode.getElementsByClassName('receiptContent')[0];
+
+        // clear receipt node
+        while (contentNode.firstChild) {
+            contentNode.removeChild(contentNode.firstChild);
+        }
+
+        // Count elements in receipt node and receipt object
+        const elementsInObject = historyReceipt.length();
+        const elementsInNode = Array.from(document.getElementById('history-receipt').getElementsByClassName('item')).length;
+        let elementsToAddCount = elementsInObject - elementsInNode;
+
+        while (elementsToAddCount > 0) {
+            // Get item
+            const item = historyReceipt.items[elementsInObject - elementsToAddCount];
+
+            // create item-node
+            const itemNode = itemNodeBuilder(item);
+
+            // append item node
+            contentNode.insertBefore(itemNode, contentNode.firstChild);
+
+            // decrease counter
+            elementsToAddCount -= 1;
+        }
+    };
+
+    const validateSeller = function () {
+        const sellerElement = document.getElementById('seller');
+        if (register.validateSeller()) {
+            sellerElement.classList.remove('invalid');
+            return true;
+        } 
+        sellerElement.classList.add('invalid');
         return false;
-    }
+    };
 
-    static closeSelectedReceipt() {
-        // reset receipt
-        this.clearReceipt('history-receipt');
+    const validatePrice = function () {
+        const priceElement = document.getElementById('price');
+        if (register.validatePrice()) {
+            priceElement.classList.remove('invalid');
+            return true;
+        } 
+        priceElement.classList.add('invalid');
+        return false;
+    };
 
-        // Hide receipt
-        document.getElementById('history-receipt').classList.add('transparent');
+    const validateDiscount = function () {
+        const discountElement = document.getElementById('discount');
+        const isDiscountedElement = document.getElementById('is-discounted');
 
-        // uncheck all radiobuttons
-        const allRadioButtons = document.getElementsByClassName('receipt-list-element');
-        Array.from(allRadioButtons).forEach((button) => {
-// eslint-disable-next-line no-param-reassign
-            button.checked = false;
-        });
+        // Validate discounted
+        if (isDiscountedElement.checked) {
+            if (register.validateDiscount()) {
+                discountElement.classList.remove('invalid');
+                return true;
+            } 
+            discountElement.classList.add('invalid');
+            return false;
+        } 
+        return true;
+    };
 
-        // Hide return button
-        document.getElementById('return-button').classList.add('hidden');
-    }
+    const receiptSelectedHandler = function () {
+        // Un-hide the selected receipt area
+        document.getElementById('history-receipt').classList.remove('transparent');
 
-    /**
-     *
-     * @param {string} receiptId
-     * @returns {Item[]}
-     */
-    static getItemsFromReceipt(receiptId) {
-        // Collect all items
-        const items = [];
-        const receiptNode = document.getElementById(receiptId);
-        const itemsNode = receiptNode.getElementsByClassName('item');
-        Array.from(itemsNode).forEach((itemNode) => {
-            const seller = itemNode.getElementsByClassName('seller')[0].innerText;
-            const price = itemNode.getElementsByClassName('price')[0].innerText;
-            const discount = itemNode.getElementsByClassName('discount')[0].innerText;
-            items.push(new Item(seller, price, discount));
-        });
+        // Get index of selected container
+        const selected = this.parentNode;
 
-        return items;
-    }
+        // Calculate index
+        const parent = selected.parentNode;
+        const indexInNode = Array.prototype.indexOf.call(parent.children, selected);
+        const indexInObject = document.getElementsByClassName('radio-button-container').length - indexInNode - 1;
+        // Get items
+        historyReceipt = receiptStorage.getReceipt(indexInObject);
 
-    static addRadioButton(title) {
+        // Populate receipt node with items
+        addItemsToHistoryReceiptNode();
+
+        // Update receipt
+        updateReceipt('history-receipt');
+
+        // Show return button
+        showReturnButton();
+    };
+
+    const addRadioButton = function (title) {
         // Hide placeholder
         const placeholder = document.getElementById('history-list-placeholder');
         placeholder.classList.add('hidden');
@@ -285,7 +427,7 @@ class UserInterface {
         radioInput.name = 'chosen-receipt';
         const thisReceiptsIndex = document.getElementsByClassName('receipt-list-element').length;
         radioInput.classList.add('receipt-list-element');
-        radioInput.id = thisReceiptsIndex;
+        radioInput.id = String(thisReceiptsIndex);
         const checkmark = document.createElement('span');
         checkmark.classList.add('checkmark');
         radioLabel.appendChild(radioInput);
@@ -294,32 +436,23 @@ class UserInterface {
         const radioButtons = document.getElementById('receipt-radio-buttons');
         radioButtons.insertBefore(radioLabel, radioButtons.firstChild);
 
-        // Create eventlistener
-        radioInput.addEventListener('click', init.receiptSelectedHandler, false);
+        // Create event listener
+        radioInput.addEventListener('click', receiptSelectedHandler, false);
 
         // clear receipt
-        UserInterface.clearReceipt('receipt');
+        updateReceipt('receipt');
 
         // Hide add-to-history button
         document.getElementById('button-add-to-history').classList.add('hidden');
-    }
+    };
 
-    static showReceipt(receiptId) { document.getElementById(receiptId).classList.remove('transparent'); }
-    static hideReceipt(receiptId) { document.getElementById(receiptId).classList.add('transparent'); }
-
-    static getSelectedReceipt() {
-        // Get all radiobuttons
+    const getSelectedReceipt = function () {
+        // Get all radio buttons
         const radioButtons = document.getElementById('receipt-radio-buttons');
 
         // Selected node
         let selectedNode = false;
-        /*
-        Array.from(radioButtons).forEach((button) => {
-            if (button.checked) {
-                selectedNode = button.parentNode;
-            }
-        });
-        */
+
         for (const button of radioButtons) {
             if (button.checked) {
                 selectedNode = button.parentNode;
@@ -327,7 +460,264 @@ class UserInterface {
             }
         }
         return selectedNode;
-    }
-}
+    };
 
-module.exports = UserInterface;
+    const editButtonHandler = function () {
+        // Hide edit button
+        this.classList.add('hidden');
+
+        // Show done button
+        const doneButton = this.parentNode.getElementsByClassName('receipt-done-button')[0];
+        doneButton.classList.remove('hidden');
+
+        // Show delete button
+        const deleteButton = this.parentNode.parentNode.getElementsByClassName('receipt-delete-button')[0];
+        deleteButton.classList.remove('hidden');
+
+        // Show delete item buttons
+        const receiptId = this.parentNode.parentNode.parentNode.id;
+        const receipt = document.getElementById(receiptId);
+        const deleteItemButtons = receipt.getElementsByClassName('delete-item-button');
+        Array.from(deleteItemButtons).forEach((button) => {
+            button.classList.remove('hidden');
+        });
+    };
+
+    const doneButtonHandler = function () {
+        // Get receipt id
+        const receiptId = this.parentNode.parentNode.parentNode.id;
+
+        // Reset edit area
+        updateReceipt(receiptId);
+    };
+
+    const deleteButtonHandler = function () {
+        // Get receipt id
+        const receiptId = this.parentNode.parentNode.parentNode.id;
+        log(`Id of receipt to delete: ${receiptId}`);
+
+        // Clear receipt object
+        if (receiptId === 'receipt') {
+            purchaseReceipt.clear();
+        } else if (receiptId === 'history-receipt') {
+            historyReceipt.clear();
+        }
+
+        // clear receipt node
+        const contentNode = document.getElementById(receiptId).getElementsByClassName('receiptContent')[0];
+        while (contentNode.firstChild) {
+            contentNode.removeChild(contentNode.firstChild);
+        }
+
+        // Update receipt
+        updateReceipt(receiptId);
+
+        // Hide add-to-history button
+        document.getElementById('button-add-to-history').classList.add('hidden');
+    };
+
+    const focusResetHandler = function () {
+        const seller = document.getElementById('seller');
+        seller.focus();
+    };
+
+    const resetForm = function () {
+        // DOM elements
+        const sellerElement = document.getElementById('seller');
+        const priceElement = document.getElementById('price');
+        const discountElement = document.getElementById('discount');
+        const isDiscountedElement = document.getElementById('is-discounted');
+
+        // empty form
+        sellerElement.value = '';
+        priceElement.value = '';
+        discountElement.value = '50';
+        isDiscountedElement.checked = false;
+        sellerElement.focus();
+    };
+
+    const addToHistoryHandler = function () {
+        if (purchaseReceipt.length() > 0) {
+
+            // Add items to new receipt in history
+            const dateString = new Date().toLocaleString('sv-SE');
+            const items = [];
+            purchaseReceipt.items.forEach((item) => {
+                const seller = item.seller;
+                const price = item.price;
+                const discount = item.discount;
+                items.push(new Item(seller, price, discount));
+            });
+            receiptStorage.addReceipt(new Receipt(items, dateString));
+
+            // add radio button
+            addRadioButton(dateString);
+
+            // Clear receipt node
+            const contentNode = document.getElementById('receipt').getElementsByClassName('receiptContent')[0];
+            while (contentNode.firstChild) {
+                contentNode.removeChild(contentNode.firstChild);
+            }
+
+            // Clear receipt object
+            purchaseReceipt.clear();
+
+            // update receipt node
+            updateReceipt('receipt');
+
+            // clear form
+            resetForm();
+        }
+    };
+
+    const closeButtonHandler = function () {
+        // reset receipt
+        updateReceipt('history-receipt');
+
+        // Hide receipt
+        document.getElementById('history-receipt').classList.add('transparent');
+
+        // uncheck all radio buttons
+        const allRadioButtons = document.getElementsByClassName('receipt-list-element');
+        Array.from(allRadioButtons).forEach((button) => {
+// eslint-disable-next-line no-param-reassign
+            button.checked = false;
+        });
+
+        // Hide return button
+        document.getElementById('return-button').classList.add('hidden');
+    };
+
+    const addItemButtonHandler = function () {
+        // DOM elements
+        const sellerElement = document.getElementById('seller');
+        const priceElement = document.getElementById('price');
+        const discountElement = document.getElementById('discount');
+        const isDiscountedElement = document.getElementById('is-discounted');
+
+        // values
+        register.seller = sellerElement.value;
+        register.price = priceElement.value;
+        register.discount = '0';
+        if (isDiscountedElement.checked) {
+            register.discount = discountElement.value;
+        }
+
+        // Parse values and update fields error message if necessary
+        const validSeller = validateSeller();
+        const validPrice = validatePrice();
+        const validDiscount = validateDiscount();
+
+        // If everything is ok, add a new item to the receipt and update the receipt
+        if (validSeller && validPrice && validDiscount) {
+            const item = register.getItem();
+            if (item === false) {
+                log('Error creating item!');
+            } else {
+                purchaseReceipt.addItem(item);
+            }
+
+
+            // Show add to history button
+            document.getElementById('button-add-to-history').classList.remove('hidden');
+
+            // empty form
+            resetForm();
+
+            // add items to receipt node
+            addItemsToPurchaseReceiptNode();
+
+            // update receipt format
+            updateReceipt('receipt');
+        }
+    };
+
+    const returnReceipt = function () {
+        const selected = getSelectedReceipt(); // receipt radio button container
+        const parent = document.getElementById('receipt-radio-buttons');
+
+        // Calculate index
+        const indexInNode = Array.prototype.indexOf.call(parent.children, selected);
+        const indexInObject = document.getElementsByClassName('radio-button-container').length - indexInNode - 1;
+
+        // Remove receipt from receiptStorage
+        const receipt = receiptStorage.returnReceipt(indexInObject);
+
+        // Remove receipt from node
+        parent.removeChild(selected);
+
+        // close receipt
+        closeButtonHandler();
+
+        // Add receipt to register
+        purchaseReceipt.clear();
+        const time = receipt.time;
+        purchaseReceipt.time = time;
+
+        receipt.items.forEach((item) => {
+            const seller = item.seller;
+            const price = item.price;
+            const discount = item.discount;
+            purchaseReceipt.addItem(new Item(seller, price, discount));
+        });
+
+        addItemsToPurchaseReceiptNode();
+        updateReceipt('receipt');
+
+        // Show purchase done button
+        document.getElementById('button-add-to-history').classList.remove('hidden');
+
+        // if receipt list is empty, show placeholder
+        const receiptListEntries = document.getElementsByClassName('radio-button-container');
+        if (receiptListEntries.length === 0) {
+            document.getElementById('history-list-placeholder').classList.remove('hidden');
+        }
+    };
+
+    const init = function () {
+        // add event listeners
+        document.getElementById('button-add-item').addEventListener('click', addItemButtonHandler, false);
+
+        const editButtons = document.getElementsByClassName('receipt-edit-button');
+        Array.from(editButtons).forEach((button) => {
+            button.addEventListener('click', editButtonHandler, false);
+        });
+        const doneButtons = document.getElementsByClassName('receipt-done-button');
+        Array.from(doneButtons).forEach((button) => {
+            button.addEventListener('click', doneButtonHandler, false);
+        });
+        const deleteButtons = document.getElementsByClassName('receipt-delete-button');
+        Array.from(deleteButtons).forEach((button) => {
+            button.addEventListener('click', deleteButtonHandler, false);
+        });
+        const focusReset = document.getElementById('focus-reset');
+        focusReset.addEventListener('focus', focusResetHandler, false);
+
+        const buttonAddToHistory = document.getElementById('button-add-to-history');
+        buttonAddToHistory.addEventListener('click', addToHistoryHandler, false);
+
+        const closeButton = document.getElementById('close-button');
+        closeButton.addEventListener('click', closeButtonHandler, false);
+
+        const returnButton = document.getElementById('return-button');
+        returnButton.addEventListener('click', returnReceipt, false);
+
+        // Reset focus
+        focusResetHandler();
+
+        // Add hotkeys
+        document.addEventListener('keyup', (e) => {
+            // hotkey numpad-'+'
+            if (e.which === 107) {
+                addToHistoryHandler();
+            }
+        }, true);
+    };
+
+    return {
+        init,
+    };
+}());
+
+
+module.exports = userInterface;

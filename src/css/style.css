@@ -48,15 +48,33 @@ header {
     padding: 20px;
     margin-bottom: 30px;
     background: #03A9F4;
-    color: #FFFFFF;
+    color: #000000;
     box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
 }
 
-header h1 { display: inline; }
+header div {
+    display: flex;
+    align-items:center;
+}
+
+#title-container {
+    display: flex;
+    align-items:center;
+}
+
+header h1 {
+    display: inline;
+}
 
 header div {
     margin: auto;
     width: 1024px;
+}
+
+.logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 20px;
 }
 
 main {
@@ -103,6 +121,12 @@ input[type=number], input[type=text] {
 .edit-area-right {
     display: flex;
     justify-content: flex-end;
+}
+
+#close-button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
 .item {
@@ -179,13 +203,6 @@ button {
 }
 
 #history { margin-left: 100px; }
-
-.logo {
-    width: 40px;
-    height: 40px;
-    margin-right: 20px;
-    vertical-align: middle;
-}
 
 .hidden { display: none; }
 .transparent { opacity: 0 }
