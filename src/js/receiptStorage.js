@@ -19,7 +19,6 @@ class ReceiptStorage {
      * @returns {Receipt[]}
      */
     get receipts() {
-        log(`Receipt storage get receipts array with length: ${this._receipts.length}`);
         return this._receipts;
     }
 
@@ -28,12 +27,10 @@ class ReceiptStorage {
      * @param {Receipt[]} value
      */
     set receipts(value) {
-        log('Receipt storage setter');
         this._receipts = value;
     }
 
     getReceipt(index) {
-        log(`Receipt Storage get receipt with index: ${index}. Receipt length is: ${this._receipts[index].length()}`);
         return this._receipts[index];
     }
 
@@ -42,14 +39,7 @@ class ReceiptStorage {
      * @param {Receipt} receipt
      */
     addReceipt(receipt) {
-        log('Receipt storage add');
-        log(`Receipt storage receipts array length before: ${this._receipts.length}`);
         this._receipts.push(receipt);
-        log(`Receipt storage receipts array length after: ${this._receipts.length}`);
-        log(`Number of items in added receipt: ${receipt.length()}`);
-        const index = this.receipts.length - 1;
-        log(`Index of last added receipt: ${index}`);
-        log(`Checking number of items in last added receipt: ${this._receipts[index].length()}`);
     }
 
     /**
@@ -58,7 +48,6 @@ class ReceiptStorage {
      * @returns {Receipt|boolean}
      */
     returnReceipt(index) {
-        log(`Receipt storage return. Index of receipt to return: ${index}`);
         if (index < this._receipts.length && index > -1) {
             const receipt = this._receipts[index];
             const items = [];
