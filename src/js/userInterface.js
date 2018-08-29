@@ -1,42 +1,19 @@
 /* eslint-disable no-trailing-spaces,no-underscore-dangle,func-names */
 const financial = require('./financial');
 const log = require('./log');
-// const init = require('./init');
 const Receipt = require('./receipt');
 const Item = require('./item');
-// const App = require('./app');
 const Register = require('./register');
 const ReceiptStorage = require('./receiptStorage');
+const fs = require('fs');
+
+const filename = 'humlan_sparade_kvitton';
 
 const userInterface = (function () {
     const register = new Register();
     const receiptStorage = new ReceiptStorage();
     const purchaseReceipt = new Receipt([], '');
     let historyReceipt = new Receipt([], '');
-
-    /**
-     *
-     * @param {string} receiptId
-     */
-    /*
-    const resetEditArea = function (receiptId) {
-        const receipt = document.getElementById(receiptId);
-        if (receipt.getElementsByClassName('receipt-edit-area').length > 0) {
-            const editArea = receipt.getElementsByClassName('receipt-edit-area')[0];
-            const editButton = editArea.getElementsByClassName('receipt-edit-button')[0];
-            const doneButton = editArea.getElementsByClassName('receipt-done-button')[0];
-            const deleteButton = editArea.getElementsByClassName('receipt-delete-button')[0];
-            const deleteItemButtons = receipt.getElementsByClassName('delete-item-button');
-
-            editButton.classList.remove('hidden');
-            doneButton.classList.add('hidden');
-            deleteButton.classList.add('hidden');
-            Array.from(deleteItemButtons).forEach((button) => {
-                button.classList.add('hidden');
-            });
-        }
-    };
-    */
 
     const updateSumNode = function (receiptId) {
         // get receipt-node
@@ -146,7 +123,7 @@ const userInterface = (function () {
         } else {
             updateReceipt(receiptId);
             // Hide add-to-history button
-            document.getElementById('button-add-to-history').classList.add('hidden');
+            document.getElementById('add-to-history-container').classList.add('hidden');
         }
     };
 
@@ -242,53 +219,6 @@ const userInterface = (function () {
         return itemNode;
     };
 
-    /**
-     *
-     * @param {Item} item
-     * @param {string} receiptId
-     */
-    /*
-    const addItemToReceipt = function (item, receiptId) {
-        // Get receipt node
-        const receiptNode = document.getElementById(receiptId);
-
-        // Reset the edit area
-        resetEditArea(receiptId);
-
-        // Show the edit area
-        if (receiptNode.getElementsByClassName('receipt-edit-area').length > 0) {
-            const editArea = receiptNode.getElementsByClassName('receipt-edit-area')[0];
-            editArea.classList.remove('hidden');
-        }
-
-        // Make sure placeholder is hidden
-        const placeholder = receiptNode.getElementsByClassName('receipt-placeholder')[0];
-        placeholder.classList.add('hidden');
-
-        // create item-node
-        const itemNode = itemNodeBuilder(item);
-
-        // get content node
-        const contentNode = receiptNode.getElementsByClassName('receiptContent')[0];
-
-        // append item node
-        contentNode.appendChild(itemNode);
-
-        // Make sure sum-container isn't hidden
-        const sumContainer = receiptNode.getElementsByClassName('sum-container')[0];
-        sumContainer.classList.remove('hidden');
-
-        // update sum
-        updateSumNode(receiptId);
-    };
-    */
-/*
-    const addItemsToReceipt = function (items, receiptId) {
-        items.forEach((item) => {
-            this.addItemToReceipt(item, receiptId);
-        });
-    };
-*/
     const showReturnButton = function () {
         // Show return button
         document.getElementById('return-button').classList.remove('hidden');
@@ -354,37 +284,64 @@ const userInterface = (function () {
         }
     };
 
+    const removeSellerInvalidMarker = function () {
+        document.getElementById('seller').classList.remove('invalid');
+        document.getElementsByClassName('invalid-marker')[0].classList.add('hidden');
+    };
+
+    const addSellerInvalidMarker = function () {
+        document.getElementById('seller').classList.add('invalid');
+        document.getElementsByClassName('invalid-marker')[0].classList.remove('hidden');
+    };
+
+    const removePriceInvalidMarker = function () {
+        document.getElementById('price').classList.remove('invalid');
+        document.getElementsByClassName('invalid-marker')[1].classList.add('hidden');
+    };
+
+    const addPriceInvalidMarker = function () {
+        document.getElementById('price').classList.add('invalid');
+        document.getElementsByClassName('invalid-marker')[1].classList.remove('hidden');
+    };
+
+    const removeDiscountInvalidMarker = function () {
+        document.getElementById('discount').classList.remove('invalid');
+        document.getElementsByClassName('invalid-marker')[2].classList.add('hidden');
+    };
+
+    const addDiscountInvalidMarker = function () {
+        document.getElementById('discount').classList.add('invalid');
+        document.getElementsByClassName('invalid-marker')[2].classList.remove('hidden');
+    };
+
     const validateSeller = function () {
-        const sellerElement = document.getElementById('seller');
         if (register.validateSeller()) {
-            sellerElement.classList.remove('invalid');
+            removeSellerInvalidMarker();
             return true;
         } 
-        sellerElement.classList.add('invalid');
+        addSellerInvalidMarker();
         return false;
     };
 
     const validatePrice = function () {
-        const priceElement = document.getElementById('price');
         if (register.validatePrice()) {
-            priceElement.classList.remove('invalid');
+            removePriceInvalidMarker();
             return true;
         } 
-        priceElement.classList.add('invalid');
+        addPriceInvalidMarker();
         return false;
     };
 
     const validateDiscount = function () {
-        const discountElement = document.getElementById('discount');
         const isDiscountedElement = document.getElementById('is-discounted');
 
         // Validate discounted
         if (isDiscountedElement.checked) {
             if (register.validateDiscount()) {
-                discountElement.classList.remove('invalid');
+                removeDiscountInvalidMarker();
                 return true;
             } 
-            discountElement.classList.add('invalid');
+            addDiscountInvalidMarker();
             return false;
         } 
         return true;
@@ -429,7 +386,7 @@ const userInterface = (function () {
         radioInput.classList.add('receipt-list-element');
         radioInput.id = String(thisReceiptsIndex);
         const checkmark = document.createElement('span');
-        checkmark.classList.add('checkmark');
+        checkmark.classList.add('checkmark-radio');
         radioLabel.appendChild(radioInput);
         radioLabel.appendChild(checkmark);
 
@@ -443,7 +400,7 @@ const userInterface = (function () {
         updateReceipt('receipt');
 
         // Hide add-to-history button
-        document.getElementById('button-add-to-history').classList.add('hidden');
+        document.getElementById('add-to-history-container').classList.add('hidden');
     };
 
     const getSelectedReceipt = function () {
@@ -453,6 +410,7 @@ const userInterface = (function () {
         // Selected node
         let selectedNode = false;
 
+// eslint-disable-next-line no-restricted-syntax
         for (const button of radioButtons) {
             if (button.checked) {
                 selectedNode = button.parentNode;
@@ -513,7 +471,7 @@ const userInterface = (function () {
         updateReceipt(receiptId);
 
         // Hide add-to-history button
-        document.getElementById('button-add-to-history').classList.add('hidden');
+        document.getElementById('add-to-history-container').classList.add('hidden');
     };
 
     const focusResetHandler = function () {
@@ -534,13 +492,18 @@ const userInterface = (function () {
         discountElement.value = '50';
         isDiscountedElement.checked = false;
         sellerElement.focus();
+
+        // reset invalid markers
+        removeSellerInvalidMarker();
+        removePriceInvalidMarker();
+        removeDiscountInvalidMarker();
     };
 
     const addToHistoryHandler = function () {
         if (purchaseReceipt.length() > 0) {
-
             // Add items to new receipt in history
             const dateString = new Date().toLocaleString('sv-SE');
+            purchaseReceipt.time = dateString;
             const items = [];
             purchaseReceipt.items.forEach((item) => {
                 const seller = item.seller;
@@ -558,6 +521,26 @@ const userInterface = (function () {
             while (contentNode.firstChild) {
                 contentNode.removeChild(contentNode.firstChild);
             }
+
+            // Create a backup
+            fs.copyFile(`${filename}.json`, `${filename}_kopia_${dateString}.json`, (err) => {
+                if (err) {
+// eslint-disable-next-line no-alert
+                    alert('File error: Misslyckades skapa säkerhetskopia till hårddisken. Starta om programmet och kontrollera att alla kvitton är sparade');
+                } else {
+                    log('Backup created!');
+                }
+            });
+
+            // save to disk
+            fs.writeFile(`${filename}.json`, JSON.stringify(receiptStorage.receipts), (err) => {
+                if (err) {
+// eslint-disable-next-line no-alert
+                    alert('File error: Misslyckades spara kvitton till hårddisken. Starta om programmet och kontrollera att alla kvitton är sparade');
+                } else {
+                    log('File saved!');
+                }
+            });
 
             // Clear receipt object
             purchaseReceipt.clear();
@@ -619,7 +602,7 @@ const userInterface = (function () {
 
 
             // Show add to history button
-            document.getElementById('button-add-to-history').classList.remove('hidden');
+            document.getElementById('add-to-history-container').classList.remove('hidden');
 
             // empty form
             resetForm();
@@ -633,48 +616,109 @@ const userInterface = (function () {
     };
 
     const returnReceipt = function () {
-        const selected = getSelectedReceipt(); // receipt radio button container
-        const parent = document.getElementById('receipt-radio-buttons');
+        if (purchaseReceipt.length() === 0) {
+            const selected = getSelectedReceipt(); // receipt radio button container
+            const parent = document.getElementById('receipt-radio-buttons');
 
-        // Calculate index
-        const indexInNode = Array.prototype.indexOf.call(parent.children, selected);
-        const indexInObject = document.getElementsByClassName('radio-button-container').length - indexInNode - 1;
+            // Calculate index
+            const indexInNode = Array.prototype.indexOf.call(parent.children, selected);
+            const indexInObject = document.getElementsByClassName('radio-button-container').length - indexInNode - 1;
 
-        // Remove receipt from receiptStorage
-        const receipt = receiptStorage.returnReceipt(indexInObject);
+            // Remove receipt from receiptStorage
+            const receipt = receiptStorage.returnReceipt(indexInObject);
 
-        // Remove receipt from node
-        parent.removeChild(selected);
+            // Remove receipt from node
+            parent.removeChild(selected);
 
-        // close receipt
-        closeButtonHandler();
+            // close receipt
+            closeButtonHandler();
 
-        // Add receipt to register
-        purchaseReceipt.clear();
-        const time = receipt.time;
-        purchaseReceipt.time = time;
+            // Add receipt to register
+            purchaseReceipt.clear();
+            purchaseReceipt.time = receipt.time;
 
-        receipt.items.forEach((item) => {
-            const seller = item.seller;
-            const price = item.price;
-            const discount = item.discount;
-            purchaseReceipt.addItem(new Item(seller, price, discount));
-        });
+            receipt.items.forEach((item) => {
+                const seller = item.seller;
+                const price = item.price;
+                const discount = item.discount;
+                purchaseReceipt.addItem(new Item(seller, price, discount));
+            });
 
-        addItemsToPurchaseReceiptNode();
-        updateReceipt('receipt');
+            addItemsToPurchaseReceiptNode();
+            updateReceipt('receipt');
 
-        // Show purchase done button
-        document.getElementById('button-add-to-history').classList.remove('hidden');
+            // Show purchase done button
+            document.getElementById('add-to-history-container').classList.remove('hidden');
 
-        // if receipt list is empty, show placeholder
-        const receiptListEntries = document.getElementsByClassName('radio-button-container');
-        if (receiptListEntries.length === 0) {
-            document.getElementById('history-list-placeholder').classList.remove('hidden');
+            // if receipt list is empty, show placeholder
+            const receiptListEntries = document.getElementsByClassName('radio-button-container');
+            if (receiptListEntries.length === 0) {
+                document.getElementById('history-list-placeholder').classList.remove('hidden');
+            }
+
+            // Create a backup
+            const dateString = new Date().toLocaleString('sv-SE');
+            fs.copyFile(`${filename}.json`, `${filename}_kopia_${dateString}.json`, (err) => {
+                if (err) {
+// eslint-disable-next-line no-alert
+                    alert('File error: Misslyckades skapa säkerhetskopia till hårddisken. Starta om programmet och kontrollera att alla kvitton är sparade');
+                } else {
+                    log('Backup created!');
+                }
+            });
+
+            // save to disk
+            fs.writeFile(`${filename}.json`, JSON.stringify(receiptStorage.receipts), (err) => {
+                if (err) {
+// eslint-disable-next-line no-alert
+                    alert('File error: Misslyckades spara kvitton till hårddisken. Starta om programmet och kontrollera att alla kvitton är sparade');
+                } else {
+                    log('File saved!');
+                }
+            });
+        } else {
+// eslint-disable-next-line no-alert
+            alert('Du måste Slutföra hanteringen av kvittot i kassan innan du returnerar ett kvitto.');
+        }
+    };
+
+    const isDiscountedCheckboxHandler = function () {
+        const checkbox = document.getElementById('is-discounted');
+        const discountField = document.getElementById('discount');
+
+        if (checkbox.checked === true) {
+            discountField.classList.remove('inactive');
+            discountField.readOnly = false;
+        } else {
+            discountField.classList.add('inactive');
+            discountField.readOnly = true;
+            removeDiscountInvalidMarker();
         }
     };
 
     const init = function () {
+        // Load save file
+        if (fs.existsSync(`${filename}.json`)) {
+            log('Found save file!');
+            const receipts = JSON.parse(fs.readFileSync(`${filename}.json`, 'utf8'));
+            receipts.forEach((value) => {
+                const time = value._time;
+                const items = [];
+                value._items.forEach((valueItem) => {
+                    const seller = valueItem._seller;
+                    const price = valueItem._price;
+                    const discount = valueItem._discount;
+                    items.push(new Item(seller, price, discount));
+                });
+                receiptStorage.addReceipt(new Receipt(items, time));
+
+                // add radio button
+                addRadioButton(time);
+            });
+
+            // update
+        }
+
         // add event listeners
         document.getElementById('button-add-item').addEventListener('click', addItemButtonHandler, false);
 
@@ -702,12 +746,24 @@ const userInterface = (function () {
         const returnButton = document.getElementById('return-button');
         returnButton.addEventListener('click', returnReceipt, false);
 
+        const isDiscountedCheckbox = document.getElementById('is-discounted');
+        isDiscountedCheckbox.addEventListener('change', isDiscountedCheckboxHandler, false);
+
+        const sellerField = document.getElementById('seller');
+        sellerField.addEventListener('input', removeSellerInvalidMarker, false);
+
+        const priceField = document.getElementById('price');
+        priceField.addEventListener('input', removePriceInvalidMarker, false);
+
+        const discountField = document.getElementById('discount');
+        discountField.addEventListener('input', removeDiscountInvalidMarker, false);
+
         // Reset focus
         focusResetHandler();
 
-        // Add hotkeys
+        // Add keyboard shortcuts
         document.addEventListener('keyup', (e) => {
-            // hotkey numpad-'+'
+            // shortcut numpad-'+'
             if (e.which === 107) {
                 addToHistoryHandler();
             }
